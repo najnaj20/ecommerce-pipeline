@@ -1,0 +1,33 @@
+# docker-compose.yml — LocalStack (emulasi AWS lokal, gratis)
+# Jalankan:  docker compose up -d
+# Berhenti:  docker compose down
+#
+# Service yang diaktifkan (yang relevan buat DE):
+#   s3      -> object storage (padanan AWS S3)
+#   lambda  -> serverless function (padanan AWS Lambda)
+#   athena  -> query SQL langsung di atas file S3 (padanan AWS Athena)
+#   glue    -> ETL managed (padanan AWS Glue) — opsional, berat
+#   secretsmanager / sts -> dipakai otomatis oleh service lain
+services:
+  localstack:
+    image: localstack/localstack:3.8.1
+    container_name: ecommerce-localstack
+    ports:
+      - "4566:4566"            # endpoint utama LocalStack (semua service di port ini)
+      - "4510-4559:4510-4559"  # port per-service untuk Lambda dkk
+    environment:
+      - SERVICES=s3,lambda,athena,secretsmanager,sts
+      - DEBUG=0
+      - DATA_DIR=/var/lib/localstack   # data persist antar restart
+      - PERSISTENCE=1
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock   # dibutuhkan Lambda (Docker-in-Docker)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  localstack_data:
